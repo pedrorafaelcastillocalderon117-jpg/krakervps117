@@ -78,7 +78,7 @@ def forward(source, destination):
 
 if __name__ == '__main__':
     listen_port = 8080 # Puerto Multiplexor
-    target_port = 22 # Puerto Destino
+    target_port = 80 # Puerto Destino (Dropbear)
     
     if len(sys.argv) > 1:
         listen_port = int(sys.argv[1])
@@ -111,7 +111,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/bin/python3 /etc/websocket/proxy.py 8080 22
+ExecStart=/usr/bin/python3 /etc/websocket/proxy.py 8080 80
 Restart=always
 RestartSec=3
 
@@ -125,3 +125,5 @@ systemctl enable ws-proxy
 systemctl restart ws-proxy
 
 echo -e "\e[1;32m¡Módulo WebSocket Multiplexor instalado exitosamente!\e[0m"
+echo -e "${CYAN}====================================================${NC}"
+read -n 1 -s -r -p "Presiona cualquier tecla para continuar..."

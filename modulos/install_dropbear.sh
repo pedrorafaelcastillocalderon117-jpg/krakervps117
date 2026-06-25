@@ -34,13 +34,16 @@ NO_START=0
 DROPBEAR_PORT=$drop_port
 DROPBEAR_EXTRA_ARGS="$extra_args"
 DROPBEAR_BANNER=""
-DROPBEAR_RECEIVE_WINDOW=8192000
 EOF
+
+# Detener servicios web por si ocupan el puerto 80
+systemctl stop apache2 nginx &>/dev/null
+systemctl disable apache2 nginx &>/dev/null
 
 # Reiniciar servicio
 systemctl restart dropbear
 systemctl enable dropbear &>/dev/null
 
-echo -e "${GREEN}Dropbear ha sido instalado y configurado en los puertos 143, 109 y 110.${NC}"
+echo -e "${GREEN}Dropbear ha sido instalado y configurado en el puerto $drop_port.${NC}"
 echo -e "${CYAN}====================================================${NC}"
 read -n 1 -s -r -p "Presiona cualquier tecla para continuar..."

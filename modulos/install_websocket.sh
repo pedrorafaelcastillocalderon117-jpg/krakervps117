@@ -78,7 +78,7 @@ def forward(source, destination):
 
 if __name__ == '__main__':
     listen_port = 8080 # Puerto Multiplexor
-    target_port = 22 # Puerto Destino (OpenSSH)
+    target_port = 80 # Puerto Destino (Dropbear)
     
     if len(sys.argv) > 1:
         listen_port = int(sys.argv[1])
@@ -111,7 +111,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/bin/python3 /etc/websocket/proxy.py 8080 22
+ExecStart=/usr/bin/python3 /etc/websocket/proxy.py 8080 80
 Restart=always
 RestartSec=3
 

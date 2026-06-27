@@ -121,28 +121,13 @@ cat << 'EOF' > /etc/issue.net
 <font color='#00FFFF'>========================================</font><br>
 EOF
 
-# Configurar OpenSSH para reemplazar a Dropbear en los puertos
-sed -i 's/^#Port.*/Port 22\nPort 80/g' /etc/ssh/sshd_config
-if ! grep -q "Port 80" /etc/ssh/sshd_config; then
-    echo "Port 80" >> /etc/ssh/sshd_config
-fi
-if ! grep -q "Port 22" /etc/ssh/sshd_config; then
-    echo "Port 22" >> /etc/ssh/sshd_config
-fi
-
 sed -i 's/^#Banner.*/Banner \/etc\/issue.net/g' /etc/ssh/sshd_config
 sed -i 's/^Banner.*/Banner \/etc\/issue.net/g' /etc/ssh/sshd_config
 
-# Asegurar que OpenSSH lee el directorio de usuarios adicionales
-if ! grep -q "Include /etc/ssh/sshd_config.d/\*.conf" /etc/ssh/sshd_config; then
-    sed -i '1i Include /etc/ssh/sshd_config.d/*.conf' /etc/ssh/sshd_config
-fi
+# Configurar Dropbear Modificado (KRAKER)
+chmod +x /etc/script_vps/modulos/install_dropbear_mod.sh
+/etc/script_vps/modulos/install_dropbear_mod.sh
 
-# Apagar Dropbear si estuviese estorbando el puerto 80
-systemctl stop dropbear 2>/dev/null
-systemctl disable dropbear 2>/dev/null
-
-# Reiniciar OpenSSH con los nuevos puertos
 systemctl restart sshd 2>/dev/null
 
 echo -e "${GREEN}Instalación completada.${NC}"

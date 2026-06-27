@@ -26,8 +26,19 @@ mkdir -p /etc/script_vps/banners
 mkdir -p /etc/ssh/sshd_config.d
 
 # Preparar entorno del menú
-cp menu.sh /etc/script_vps/menu.sh
-cp -r modulos/* /etc/script_vps/modulos/ 2>/dev/null
+# Si tenemos la carpeta modulos local, la copiamos
+if [ -d "modulos" ]; then
+    cp menu.sh /etc/script_vps/menu.sh 2>/dev/null
+    cp -r modulos/* /etc/script_vps/modulos/ 2>/dev/null
+fi
+# Si no, descargamos los módulos desde GitHub
+if [ ! -f "/etc/script_vps/menu.sh" ]; then
+    REPO_RAW="https://raw.githubusercontent.com/pedrorafaelcastillocalderon117-jpg/krakervps117/main"
+    wget -q "$REPO_RAW/menu.sh" -O /etc/script_vps/menu.sh
+    for mod in user_add user_del user_edit monitor_users install_dropbear_mod install_websocket; do
+        wget -q "$REPO_RAW/modulos/${mod}.sh" -O "/etc/script_vps/modulos/${mod}.sh"
+    done
+fi
 
 chmod +x /etc/script_vps/menu.sh
 chmod +x /etc/script_vps/modulos/* 2>/dev/null
@@ -125,6 +136,11 @@ sed -i 's/^#Banner.*/Banner \/etc\/issue.net/g' /etc/ssh/sshd_config
 sed -i 's/^Banner.*/Banner \/etc\/issue.net/g' /etc/ssh/sshd_config
 
 # Configurar Dropbear Modificado (KRAKER)
+# Si no existe el módulo (instalación por wget), lo descargamos
+if [ ! -f "/etc/script_vps/modulos/install_dropbear_mod.sh" ]; then
+    REPO_RAW="https://raw.githubusercontent.com/pedrorafaelcastillocalderon117-jpg/krakervps117/main"
+    wget -q "$REPO_RAW/modulos/install_dropbear_mod.sh" -O /etc/script_vps/modulos/install_dropbear_mod.sh
+fi
 chmod +x /etc/script_vps/modulos/install_dropbear_mod.sh
 /etc/script_vps/modulos/install_dropbear_mod.sh
 

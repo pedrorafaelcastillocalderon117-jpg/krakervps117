@@ -31,17 +31,14 @@ sed -i 's/^.*PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/ssh
 systemctl restart sshd
 systemctl restart ssh 2>/dev/null
 
-# Crear un shell seguro infinito para VPN con Banner Dinámico KRAKER
+# Crear un shell seguro infinito para VPN con Banner Dinámico KRAKER (Formato HTML)
 cat << 'EOF' > /bin/vpnshell
 #!/bin/bash
 clear
-echo -e "\033[1;36m====================================================\033[0m"
-echo -e "\033[1;32m  _  __ ____      _      _  __  _____  ____  \033[0m"
-echo -e "\033[1;32m | |/ /|  _ \    / \    | |/ / | ____||  _ \ \033[0m"
-echo -e "\033[1;32m | ' / | |_) |  / _ \   | ' /  |  _|  | |_) |\033[0m"
-echo -e "\033[1;32m | . \ |  _ <  / ___ \  | . \  | |___ |  _ < \033[0m"
-echo -e "\033[1;32m |_|\_\|_| \_\/_/   \_\ |_|\_\ |_____||_| \_\\\033[0m"
-echo -e "\033[1;36m====================================================\033[0m"
+echo "<br>"
+echo "<font color='#00FFFF'>========================================</font><br>"
+echo "<font color='#00FF00'><b>&nbsp;&nbsp;K R A K E R &nbsp;&nbsp;V P N</b></font><br>"
+echo "<font color='#00FFFF'>========================================</font><br>"
 
 USUARIO=$USER
 EXP_DATE=$(chage -l $USUARIO 2>/dev/null | grep "Account expires" | cut -d: -f2 | xargs)
@@ -89,12 +86,16 @@ else
     LIMITE="1 (Por defecto)"
 fi
 
-echo -e "\033[1;37m Nombre de Usuario :\033[0m $USUARIO"
-echo -e "\033[1;37m Fecha Expiración  :\033[0m $EXP_TXT"
-echo -e "\033[1;37m Días Restantes    :\033[0m $DIAS_RESTANTES"
-echo -e "\033[1;37m Consumo de datos  :\033[0m $CONSUMO"
-echo -e "\033[1;37m Límite de IPs     :\033[0m $LIMITE"
-echo -e "\033[1;36m====================================================\033[0m"
+echo "<font color='#FFFFFF'><b>👤 Nombre de Usuario :</b></font> <font color='#FFFF00'>$USUARIO</font><br>"
+echo "<font color='#FFFFFF'><b>📅 Fecha Expiración  :</b></font> <font color='#FFFF00'>$EXP_TXT</font><br>"
+echo "<font color='#FFFFFF'><b>⏳ Días Restantes    :</b></font> <font color='#FFFF00'>$DIAS_RESTANTES</font><br>"
+echo "<font color='#FFFFFF'><b>📊 Consumo de datos  :</b></font> <font color='#FFFF00'>$CONSUMO</font><br>"
+echo "<font color='#FFFFFF'><b>🔗 Límite de IPs     :</b></font> <font color='#FFFF00'>$LIMITE</font><br>"
+echo "<font color='#00FFFF'>========================================</font><br>"
+
+# Para clientes que no soportan HTML (como Termux), imprimimos texto limpio también
+echo -e "\n--- Bienvenido $USUARIO a KRAKER VPN ---"
+echo -e "Expira: $EXP_TXT ($DIAS_RESTANTES días) | Consumo: $CONSUMO | IPs: $LIMITE\n"
 
 while true; do sleep 86400; done
 EOF

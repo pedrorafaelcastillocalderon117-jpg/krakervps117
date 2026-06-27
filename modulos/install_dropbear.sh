@@ -33,7 +33,7 @@ cat <<EOF > /etc/default/dropbear
 NO_START=0
 DROPBEAR_PORT=$drop_port
 DROPBEAR_EXTRA_ARGS="$extra_args"
-DROPBEAR_BANNER=""
+DROPBEAR_BANNER="/etc/issue.net"
 EOF
 
 # Detener servicios web por si ocupan el puerto 80

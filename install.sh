@@ -33,5 +33,17 @@ chmod +x /etc/script_vps/modulos/* 2>/dev/null
 # Crear comando de acceso rápido al menú
 ln -sf /etc/script_vps/menu.sh /usr/local/bin/menu
 
+# Crear banner de respaldo estático (issue.net) para apps que no leen vpnshell
+cat << 'EOF' > /etc/issue.net
+<br>
+<font color='#00FFFF'>========================================</font><br>
+<font color='#00FF00'><b>&nbsp;&nbsp;K R A K E R &nbsp;&nbsp;V P N</b></font><br>
+<font color='#FFFFFF'>--- Conexión Establecida ---</font><br>
+<font color='#00FFFF'>========================================</font><br>
+EOF
+sed -i 's/^#Banner.*/Banner \/etc\/issue.net/g' /etc/ssh/sshd_config
+sed -i 's/^Banner.*/Banner \/etc\/issue.net/g' /etc/ssh/sshd_config
+systemctl restart sshd 2>/dev/null
+
 echo -e "${GREEN}Instalación completada.${NC}"
 echo -e "Escribe ${YELLOW}menu${NC} en la terminal para iniciar."

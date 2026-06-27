@@ -16,7 +16,7 @@ apt-get upgrade -y
 
 # Instalar utilidades esenciales
 echo -e "${YELLOW}Instalando utilidades (curl, wget, net-tools, htop)...${NC}"
-apt-get install -y curl wget net-tools htop nano unzip dos2unix iptables
+apt-get install -y curl wget net-tools htop nano unzip dos2unix iptables sudo
 
 # Crear directorios del script
 mkdir -p /etc/script_vps
@@ -32,6 +32,10 @@ chmod +x /etc/script_vps/modulos/* 2>/dev/null
 
 # Crear comando de acceso rápido al menú
 ln -sf /etc/script_vps/menu.sh /usr/local/bin/menu
+
+# Configurar permisos sudo sin contraseña para que vpnshell lea el consumo (Opción 1)
+echo "ALL ALL=(root) NOPASSWD: /sbin/iptables-save -c" > /etc/sudoers.d/krakervps
+chmod 0440 /etc/sudoers.d/krakervps
 
 # Crear banner de respaldo estático (issue.net) para apps que no leen vpnshell
 cat << 'EOF' > /etc/issue.net

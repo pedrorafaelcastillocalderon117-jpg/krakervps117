@@ -16,11 +16,12 @@ apt-get upgrade -y
 
 # Instalar utilidades esenciales
 echo -e "${YELLOW}Instalando utilidades (curl, wget, net-tools, htop)...${NC}"
-apt-get install -y curl wget net-tools htop nano unzip dos2unix
+apt-get install -y curl wget net-tools htop nano unzip dos2unix iptables
 
 # Crear directorios del script
 mkdir -p /etc/script_vps
 mkdir -p /etc/script_vps/modulos
+mkdir -p /etc/script_vps/limites
 
 # Preparar entorno del menú
 cp menu.sh /etc/script_vps/menu.sh

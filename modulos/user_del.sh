@@ -17,6 +17,11 @@ read -p "Nombre de usuario a eliminar: " username
 if id "$username" &>/dev/null; then
     # Eliminar procesos del usuario
     pkill -u "$username"
+    
+    # Eliminar regla de iptables de consumo y archivo de límite
+    iptables -D OUTPUT -m owner --uid-owner "$username" -j ACCEPT 2>/dev/null
+    rm -f "/etc/script_vps/limites/$username"
+    
     userdel -r "$username" 2>/dev/null
     echo -e "${GREEN}El usuario $username ha sido eliminado exitosamente.${NC}"
 else

@@ -56,9 +56,9 @@ iptables-save -c > /etc/script_vps/consumos.txt
 chmod 666 /etc/script_vps/consumos.txt
 
 # Generar banners HTML individualizados
-for user_conf in /etc/ssh/sshd_config.d/banner_*.conf; do
-    [ -e "$user_conf" ] || continue
-    username=$(basename "$user_conf" | sed 's/banner_//;s/\.conf//')
+for limite_file in /etc/script_vps/limites/*; do
+    [ -e "$limite_file" ] || continue
+    username=$(basename "$limite_file")
     
     EXP_DATE=$(chage -l "$username" 2>/dev/null | grep "Account expires" | cut -d: -f2 | xargs)
     if [ "$EXP_DATE" == "never" ] || [ -z "$EXP_DATE" ]; then

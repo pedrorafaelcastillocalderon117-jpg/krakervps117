@@ -26,7 +26,7 @@ show_menu() {
     echo -e "${CYAN}╠══════════════════════════════════════════════════════════════════════════╣${NC}"
     echo -e "${CYAN}║${NC} ${WHITE}GESTIÓN DE USUARIOS${NC}"
     echo -e "${CYAN}║${NC} ${GREEN}[1]${NC} Crear Usuario SSH/Dropbear       ${GREEN}[2]${NC} Eliminar Usuario"
-    echo -e "${CYAN}║${NC} ${GREEN}[8]${NC} Monitor de Usuarios Conectados"
+    echo -e "${CYAN}║${NC} ${GREEN}[14]${NC} Editar Usuario                    ${GREEN}[8]${NC} Monitor Conectados"
     echo -e "${CYAN}╠══════════════════════════════════════════════════════════════════════════╣${NC}"
     echo -e "${CYAN}║${NC} ${WHITE}INSTALACIÓN DE PROTOCOLOS Y TÚNELES${NC}"
     echo -e "${CYAN}║${NC} ${GREEN}[3]${NC} Instalar Dropbear                ${GREEN}[4]${NC} Instalar Stunnel4 (SSL)"
@@ -82,6 +82,9 @@ show_menu() {
             ;;
         13)
             /etc/script_vps/modulos/install_websocket.sh
+            ;;
+        14)
+            /etc/script_vps/modulos/user_edit.sh
             ;;
         0)
             clear

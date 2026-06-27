@@ -12,9 +12,29 @@ echo -e "${CYAN}====================================================${NC}"
 echo -e "${RED}                 ELIMINAR USUARIO                   ${NC}"
 echo -e "${CYAN}====================================================${NC}"
 
-read -p "Nombre de usuario a eliminar: " username
+mapfile -t arr_usuarios < <(awk -F: '$3 >= 1000 && $1 != "nobody" {print $1}' /etc/passwd)
 
-if id "$username" &>/dev/null; then
+if [ ${#arr_usuarios[@]} -eq 0 ]; then
+    echo -e "${YELLOW}No hay usuarios VPN creados en el sistema.${NC}"
+    echo -e "${CYAN}====================================================${NC}"
+    read -n 1 -s -r -p "Presiona cualquier tecla para continuar..."
+    exit 0
+fi
+
+echo -e "${WHITE}Lista de usuarios:${NC}"
+for i in "${!arr_usuarios[@]}"; do
+    echo -e " ${GREEN}[$((i+1))]${NC} ${arr_usuarios[$i]}"
+done
+echo -e ""
+read -p " ❯ Ingresa el número del usuario a eliminar (0 para cancelar): " num
+
+if [ "$num" == "0" ]; then
+    exit 0
+fi
+
+if [[ "$num" =~ ^[0-9]+$ ]] && [ "$num" -gt 0 ] && [ "$num" -le "${#arr_usuarios[@]}" ]; then
+    username="${arr_usuarios[$((num-1))]}"
+    
     # Eliminar procesos del usuario
     pkill -u "$username"
     
@@ -25,7 +45,7 @@ if id "$username" &>/dev/null; then
     userdel -r "$username" 2>/dev/null
     echo -e "${GREEN}El usuario $username ha sido eliminado exitosamente.${NC}"
 else
-    echo -e "${RED}El usuario $username no existe.${NC}"
+    echo -e "${RED}Número de usuario inválido.${NC}"
 fi
 
 echo -e "${CYAN}====================================================${NC}"

@@ -82,9 +82,15 @@ for limite_file in /etc/script_vps/limites/*; do
     fi
 
     UID_NUM=$(id -u "$username" 2>/dev/null)
+    # Leer UID guardado si el id falla
+    [ -z "$UID_NUM" ] && [ -f "/etc/script_vps/uids/$username" ] && UID_NUM=$(cat "/etc/script_vps/uids/$username")
     BYTES=0
-    if [ -n "$UID_NUM" ]; then
-        BYTES=$(grep "uid-owner $UID_NUM" /etc/script_vps/consumos.txt | awk -F'[:]' '{print $2}' | cut -d']' -f1 | awk '{s+=$1} END {print s}')
+    if [ -n "$UID_NUM" ] && [ "$UID_NUM" != "0" ]; then
+        # iptables-save -c formato: [packets:bytes] -A CHAIN ... --uid-owner UID ...
+        # Extraemos el campo bytes (segundo número entre [ y ])
+        BYTES=$(grep -E "owner --uid-owner $UID_NUM( |$)" /etc/script_vps/consumos.txt | \
+                grep -oP '^\[\d+:\K\d+(?=\])' | \
+                awk '{s+=$1} END {print (s ? s : 0)}')
     fi
     [ -z "$BYTES" ] && BYTES=0
 

@@ -112,10 +112,17 @@ echo "$username:$password" | chpasswd
 mkdir -p /etc/script_vps/limites
 echo "$limite_ips" > "/etc/script_vps/limites/$username"
 
-# Regla de iptables para consumo
-if ! iptables -C OUTPUT -m owner --uid-owner "$username" -j ACCEPT 2>/dev/null; then
-    iptables -A OUTPUT -m owner --uid-owner "$username" -j ACCEPT
+# Reglas de iptables para consumo (subida + descarga)
+UID_NUM=$(id -u "$username" 2>/dev/null)
+if ! iptables -C OUTPUT -m owner --uid-owner "$UID_NUM" -j ACCEPT 2>/dev/null; then
+    iptables -A OUTPUT -m owner --uid-owner "$UID_NUM" -j ACCEPT
 fi
+if ! iptables -C INPUT -m owner --uid-owner "$UID_NUM" -j ACCEPT 2>/dev/null; then
+    iptables -A INPUT -m owner --uid-owner "$UID_NUM" -j ACCEPT 2>/dev/null || true
+fi
+# Guardar UID del usuario para el tracking
+mkdir -p /etc/script_vps/uids
+echo "$UID_NUM" > "/etc/script_vps/uids/$username"
 
 # Calcular la fecha de expiración
 if [[ "$dias" =~ ^[0-9]+$ ]]; then

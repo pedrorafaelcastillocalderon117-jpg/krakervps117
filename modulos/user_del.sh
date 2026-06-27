@@ -42,6 +42,11 @@ if [[ "$num" =~ ^[0-9]+$ ]] && [ "$num" -gt 0 ] && [ "$num" -le "${#arr_usuarios
     iptables -D OUTPUT -m owner --uid-owner "$username" -j ACCEPT 2>/dev/null
     rm -f "/etc/script_vps/limites/$username"
     
+    # Limpiar configuracion de OpenSSH Banner
+    rm -f "/etc/ssh/sshd_config.d/banner_${username}.conf"
+    rm -f "/etc/script_vps/banners/$username"
+    systemctl reload sshd 2>/dev/null
+
     userdel -r "$username" 2>/dev/null
     echo -e "${GREEN}El usuario $username ha sido eliminado exitosamente.${NC}"
 else

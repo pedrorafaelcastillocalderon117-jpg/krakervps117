@@ -112,6 +112,13 @@ echo "$username:$password" | chpasswd
 mkdir -p /etc/script_vps/limites
 echo "$limite_ips" > "/etc/script_vps/limites/$username"
 
+# Configurar Banner Dinámico en OpenSSH (Match User)
+cat << EOF > "/etc/ssh/sshd_config.d/banner_${username}.conf"
+Match User $username
+    Banner /etc/script_vps/banners/$username
+EOF
+systemctl reload sshd 2>/dev/null
+
 # Regla de iptables para consumo
 if ! iptables -C OUTPUT -m owner --uid-owner "$username" -j ACCEPT 2>/dev/null; then
     iptables -A OUTPUT -m owner --uid-owner "$username" -j ACCEPT

@@ -33,9 +33,22 @@ chmod +x /etc/script_vps/modulos/* 2>/dev/null
 # Crear comando de acceso rápido al menú
 ln -sf /etc/script_vps/menu.sh /usr/local/bin/menu
 
-# Configurar permisos sudo sin contraseña para que vpnshell lea el consumo (Opción 1)
-echo "ALL ALL=(root) NOPASSWD: /sbin/iptables-save -c" > /etc/sudoers.d/krakervps
-chmod 0440 /etc/sudoers.d/krakervps
+# Limpiar cualquier configuración vieja de sudoers que haya causado problemas
+rm -f /etc/sudoers.d/krakervps
+
+# Crear el script del Cronjob para reporte de consumo
+cat << 'EOF' > /usr/local/bin/kraker_consumo.sh
+#!/bin/bash
+iptables-save -c > /etc/script_vps/consumos.txt
+chmod 666 /etc/script_vps/consumos.txt
+EOF
+chmod +x /usr/local/bin/kraker_consumo.sh
+
+# Configurar en Crontab para que corra cada 1 minuto
+if ! crontab -l 2>/dev/null | grep -q "kraker_consumo.sh"; then
+    (crontab -l 2>/dev/null; echo "* * * * * /usr/local/bin/kraker_consumo.sh") | crontab -
+fi
+/usr/local/bin/kraker_consumo.sh
 
 # Crear banner de respaldo estático (issue.net) para apps que no leen vpnshell
 cat << 'EOF' > /etc/issue.net
@@ -48,6 +61,7 @@ EOF
 sed -i 's/^#Banner.*/Banner \/etc\/issue.net/g' /etc/ssh/sshd_config
 sed -i 's/^Banner.*/Banner \/etc\/issue.net/g' /etc/ssh/sshd_config
 systemctl restart sshd 2>/dev/null
+systemctl restart dropbear 2>/dev/null
 
 echo -e "${GREEN}Instalación completada.${NC}"
 echo -e "Escribe ${YELLOW}menu${NC} en la terminal para iniciar."

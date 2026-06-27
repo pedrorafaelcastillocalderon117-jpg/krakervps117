@@ -63,8 +63,8 @@ else
 fi
 
 UID_NUM=$(id -u $USUARIO 2>/dev/null)
-if [ -n "$UID_NUM" ]; then
-    BYTES=$(sudo /sbin/iptables-save -c 2>/dev/null | grep "uid-owner $UID_NUM" | awk -F'[:]' '{print $2}' | cut -d']' -f1 | awk '{s+=$1} END {print s}')
+if [ -n "$UID_NUM" ] && [ -f "/etc/script_vps/consumos.txt" ]; then
+    BYTES=$(grep "uid-owner $UID_NUM" /etc/script_vps/consumos.txt | awk -F'[:]' '{print $2}' | cut -d']' -f1 | awk '{s+=$1} END {print s}')
 fi
 if [ -z "$BYTES" ] || [ "$BYTES" == "" ]; then
     BYTES=0

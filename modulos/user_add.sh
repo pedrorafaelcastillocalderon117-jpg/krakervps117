@@ -63,9 +63,8 @@ else
 fi
 
 UID_NUM=$(id -u $USUARIO 2>/dev/null)
-if [ -n "$UID_NUM" ]; then
-    BYTES=$(sudo iptables-save -c 2>/dev/null | grep "uid-owner $UID_NUM" | awk -F'[:]' '{print $2}' | cut -d']' -f1 | awk '{s+=$1} END {print s}')
-fi
+# Se quitó sudo iptables-save para evitar que la consola se quede colgada pidiendo contraseña root
+BYTES=0
 if [ -z "$BYTES" ] || [ "$BYTES" == "" ]; then
     BYTES=0
 fi

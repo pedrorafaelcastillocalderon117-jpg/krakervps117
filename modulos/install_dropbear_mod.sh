@@ -34,94 +34,113 @@ tar -xjf dropbear.tar.bz2
 cd dropbear-2022.83
 echo -e "      ${GREEN}✓ OK${NC}"
 
-# Aplicar parche con Python (regex robusto)
+# Aplicar parche con Python - CORRECTO para Dropbear 2022.83
 echo -e "${CYAN}[3/5]${NC} Aplicando parche de banners dinámicos..."
-python3 - << 'PYEOF'
-import re, sys
+python3 << 'PYEOF'
+import sys
 
 with open('svr-auth.c', 'r') as f:
     src = f.read()
 
-# Añadir include para open() si no está
+# Añadir include para open()/read() si no está
 if '#include <fcntl.h>' not in src:
     src = '#include <fcntl.h>\n' + src
 
-# Patrón flexible: busca el if (svr_opts.banner) { send_msg... } completo
-pattern = re.compile(
-    r'if\s*\(\s*svr_opts\.banner\s*\)\s*\{[^}]*send_msg_userauth_banner\s*\([^)]+\)\s*;\s*\}',
-    re.DOTALL
-)
+# BLOQUE ORIGINAL EXACTO en Dropbear 2022.83 (confirmado en el código fuente):
+# El banner se envía ANTES de leer el username, así que hacemos peek del payload
+OLD = '''\t/* send the banner if it exists, it will only exist once */
+\tif (svr_opts.banner) {
+\t\tsend_msg_userauth_banner(svr_opts.banner);
+\t\tbuf_free(svr_opts.banner);
+\t\tsvr_opts.banner = NULL;
+\t}'''
 
-replacement = r'''/* KRAKER MOD: Banner dinamico por usuario */
-	{
-		const char *_uname = ses.authstate.username;
-		int _bfd = -1;
-		if (_uname && _uname[0] != '\0') {
-			char _bpath[256];
-			snprintf(_bpath, sizeof(_bpath), "/etc/script_vps/banners/%s", _uname);
-			_bfd = open(_bpath, O_RDONLY);
-		}
-		if (_bfd >= 0) {
-			buffer *_ub = buf_new(4096);
-			unsigned char *_wp = buf_getwriteptr(_ub, 4096);
-			ssize_t _blen = read(_bfd, _wp, 4096);
-			close(_bfd);
-			if (_blen > 0) {
-				buf_incrwritepos(_ub, (unsigned int)_blen);
-				send_msg_userauth_banner(_ub);
-			}
-			buf_free(_ub);
-		} else if (svr_opts.banner) {
-			send_msg_userauth_banner(svr_opts.banner);
-		}
-	}
-	/* FIN KRAKER MOD */'''
+NEW = '''\t/* KRAKER MOD: Banner dinamico por usuario */
+\t{
+\t\t/* Leer username del payload sin consumirlo (peek) */
+\t\tunsigned int _saved_pos = ses.payload->pos;
+\t\tunsigned int _ulen = 0;
+\t\tchar *_uname = buf_getstring(ses.payload, &_ulen);
+\t\tbuf_setpos(ses.payload, _saved_pos); /* restaurar posicion */
+\t\t
+\t\tint _bfd = -1;
+\t\tif (_uname && _uname[0]) {
+\t\t\tchar _bpath[256];
+\t\t\tsnprintf(_bpath, sizeof(_bpath), "/etc/script_vps/banners/%s", _uname);
+\t\t\t_bfd = open(_bpath, O_RDONLY);
+\t\t}
+\t\tm_free(_uname);
+\t\t
+\t\tif (_bfd >= 0) {
+\t\t\tbuffer *_ub = buf_new(4096);
+\t\t\tunsigned char *_wp = buf_getwriteptr(_ub, 4096);
+\t\t\tssize_t _blen = read(_bfd, _wp, 4096);
+\t\t\tclose(_bfd);
+\t\t\tif (_blen > 0) {
+\t\t\t\tbuf_incrwritepos(_ub, (unsigned int)_blen);
+\t\t\t\tsend_msg_userauth_banner(_ub);
+\t\t\t} else if (svr_opts.banner) {
+\t\t\t\tsend_msg_userauth_banner(svr_opts.banner);
+\t\t\t}
+\t\t\tbuf_free(_ub);
+\t\t} else if (svr_opts.banner) {
+\t\t\tsend_msg_userauth_banner(svr_opts.banner);
+\t\t}
+\t\t/* Liberar banner global (solo se manda una vez) */
+\t\tif (svr_opts.banner) {
+\t\t\tbuf_free(svr_opts.banner);
+\t\t\tsvr_opts.banner = NULL;
+\t\t}
+\t}
+\t/* FIN KRAKER MOD */'''
 
-match = pattern.search(src)
-if match:
-    src = src[:match.start()] + replacement + src[match.end():]
+if OLD in src:
+    src = src.replace(OLD, NEW, 1)
     with open('svr-auth.c', 'w') as f:
         f.write(src)
-    print('PATCH_OK: Parche aplicado en posicion', match.start())
+    print('PATCH_OK: Parche aplicado correctamente en Dropbear 2022.83')
 else:
-    # Fallback: buscar solo la llamada directa
-    simple_pat = re.compile(r'send_msg_userauth_banner\s*\(\s*svr_opts\.banner\s*\)\s*;')
-    m2 = simple_pat.search(src)
-    if m2:
-        src = src[:m2.start()] + replacement.strip().split('{',1)[1].rsplit('}',1)[0] + src[m2.end():]
-        with open('svr-auth.c', 'w') as f:
-            f.write(src)
-        print('PATCH_OK_FALLBACK: Parche aplicado (fallback)')
+    print('ERROR: Patron exacto no encontrado. Verificando similitudes...')
+    # Buscar variación con espacios
+    import re
+    pat = re.compile(r'/\* send the banner.*?svr_opts\.banner = NULL;\s*\}', re.DOTALL)
+    m = pat.search(src)
+    if m:
+        print('ALTERNATIVO encontrado en posicion', m.start(), ':', repr(m.group()[:80]))
     else:
-        print('PATCH_FAIL: Patron no encontrado en esta version de Dropbear')
-        sys.exit(1)
+        print('Mostrando lineas 88-97 del archivo:')
+        lines = src.split('\n')
+        for i, l in enumerate(lines[87:97], 88):
+            print(f'{i}: {repr(l)}')
+    sys.exit(1)
 PYEOF
 
-if [ $? -ne 0 ]; then
-    echo -e "      ${RED}✗ Parche fallido${NC}"; exit 1
+PATCH_STATUS=$?
+if [ $PATCH_STATUS -ne 0 ]; then
+    echo -e "      ${RED}✗ Parche fallido. Abortando.${NC}"
+    exit 1
 fi
 echo -e "      ${GREEN}✓ Parche aplicado correctamente${NC}"
 
 # Compilar
 echo -e "${CYAN}[4/5]${NC} Compilando (puede tardar 1-3 minutos)..."
 ./configure LDFLAGS="-lcrypt" &>/dev/null
-make PROGRAMS="dropbear" 2>&1 | tail -5
+make PROGRAMS="dropbear" 2>&1 | grep -E "error:|warning:|Linking" | tail -10
 if [ $? -ne 0 ]; then
-    echo -e "      ${YELLOW}⚠ Reintentando compilación...${NC}"
+    echo -e "      ${YELLOW}⚠ Reintentando compilación sin flags extra...${NC}"
     make clean &>/dev/null
     ./configure &>/dev/null
-    make PROGRAMS="dropbear" &>/tmp/make2.log
+    make PROGRAMS="dropbear" 2>&1 | grep -E "error:|Linking" | tail -5
     if [ $? -ne 0 ]; then
-        echo -e "      ${RED}✗ Error de compilación. Usando Dropbear estándar.${NC}"
-        apt-get install -y dropbear &>/dev/null
-        FALLBACK=1
+        echo -e "      ${RED}✗ Compilación fallida.${NC}"; exit 1
     fi
 fi
-echo -e "      ${GREEN}✓ Compilado${NC}"
+echo -e "      ${GREEN}✓ Compilado exitosamente${NC}"
 
 # Instalar binario
-echo -e "${CYAN}[5/5]${NC} Instalando Dropbear..."
-[ -z "$FALLBACK" ] && cp dropbear /usr/sbin/dropbear && chmod +x /usr/sbin/dropbear
+echo -e "${CYAN}[5/5]${NC} Instalando Dropbear KRAKER..."
+cp dropbear /usr/sbin/dropbear
+chmod +x /usr/sbin/dropbear
 
 # Generar claves host si no existen
 mkdir -p /etc/dropbear
@@ -130,7 +149,7 @@ mkdir -p /etc/dropbear
 [ ! -f /etc/dropbear/dropbear_ecdsa_host_key ] && \
     dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key &>/dev/null
 
-# Configurar Dropbear
+# Configurar Dropbear (puerto 80 y 143)
 cat << 'EOF' > /etc/default/dropbear
 NO_START=0
 DROPBEAR_PORT=80
@@ -151,9 +170,11 @@ systemctl restart dropbear
 sleep 2
 
 if systemctl is-active --quiet dropbear; then
-    echo -e "${GREEN}╔══════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  ✅  Dropbear KRAKER Mod activo en 80/143   ║${NC}"
-    echo -e "${GREEN}╚══════════════════════════════════════════════╝${NC}"
+    echo -e "${GREEN}"
+    echo "╔══════════════════════════════════════════════╗"
+    echo "║  ✅  Dropbear KRAKER Mod activo en 80/143   ║"
+    echo "╚══════════════════════════════════════════════╝"
+    echo -e "${NC}"
 else
     echo -e "${RED}⚠ Dropbear no está activo. Revisa: systemctl status dropbear${NC}"
 fi

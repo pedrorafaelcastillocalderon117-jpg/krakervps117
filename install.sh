@@ -102,16 +102,19 @@ for limite_file in /etc/script_vps/limites/*; do
     [ -f "/etc/script_vps/limites/$username" ] && LIMITE=$(cat "/etc/script_vps/limites/$username")
 
     cat << BANN > "/etc/script_vps/banners/$username"
+<br><br>
+<font color='#00FFFF'>╔══════════════════════════════════════════════╗</font><br>
+<font color='#00FFFF'>║</font><font color='#FFD700'><b>&nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;K&nbsp;R&nbsp;A&nbsp;K&nbsp;E&nbsp;R&nbsp;&nbsp;V&nbsp;P&nbsp;N&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp;</b></font><font color='#00FFFF'>║</font><br>
+<font color='#00FFFF'>║&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Conexi&oacute;n Segura Establecida&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color='#00FFFF'>║</font><br>
+<font color='#00FFFF'>╠══════════════════════════════════════════════╣</font><br>
+<font color='#00FFFF'>║</font>&nbsp;<font color='#AAAAAA'>👤&nbsp;Usuario&nbsp;&nbsp;:</font>&nbsp;<font color='#00FF00'><b>&nbsp;$username</b></font><br>
+<font color='#00FFFF'>║</font>&nbsp;<font color='#AAAAAA'>📅&nbsp;Expira&nbsp;&nbsp;&nbsp;:</font>&nbsp;<font color='#FFFF00'>&nbsp;$EXP_TXT</font><br>
+<font color='#00FFFF'>║</font>&nbsp;<font color='#AAAAAA'>⏳&nbsp;Quedan&nbsp;&nbsp;&nbsp;:</font>&nbsp;<font color='#FF6600'><b>&nbsp;$DIAS_RESTANTES d&iacute;as</b></font><br>
+<font color='#00FFFF'>║</font>&nbsp;<font color='#AAAAAA'>📊&nbsp;Consumo&nbsp;&nbsp;:</font>&nbsp;<font color='#00FFFF'><b>&nbsp;$CONSUMO</b></font><br>
+<font color='#00FFFF'>║</font>&nbsp;<font color='#AAAAAA'>🔗&nbsp;IPs&nbsp;m&aacute;x&nbsp; :</font>&nbsp;<font color='#FF69B4'>&nbsp;$LIMITE conexiones</font><br>
+<font color='#00FFFF'>╚══════════════════════════════════════════════╝</font><br>
+<font color='#555555'>&nbsp;&nbsp;🔒&nbsp;Powered by KRAKER VPN</font><br>
 <br>
-<font color='#00FFFF'>========================================</font><br>
-<font color='#00FF00'><b>&nbsp;&nbsp;K R A K E R &nbsp;&nbsp;V P N</b></font><br>
-<font color='#00FFFF'>========================================</font><br>
-<font color='#FFFFFF'><b>👤 Usuario:</b></font> <font color='#FFFF00'>$username</font><br>
-<font color='#FFFFFF'><b>📅 Expira :</b></font> <font color='#FFFF00'>$EXP_TXT</font><br>
-<font color='#FFFFFF'><b>⏳ Quedan :</b></font> <font color='#FFFF00'>$DIAS_RESTANTES días</font><br>
-<font color='#FFFFFF'><b>📊 Consumo:</b></font> <font color='#FFFF00'>$CONSUMO</font><br>
-<font color='#FFFFFF'><b>🔗 IPs    :</b></font> <font color='#FFFF00'>$LIMITE</font><br>
-<font color='#00FFFF'>========================================</font><br>
 BANN
 done
 EOF

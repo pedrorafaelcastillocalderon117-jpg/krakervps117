@@ -40,10 +40,60 @@ echo -e "${GREEN}      ✓ Listo${NC}"
 echo -e "${YELLOW}[4/6] Configurando generador de banners dinámicos...${NC}"
 cat << 'CRONEOF' > /usr/local/bin/kraker_consumo.sh
 #!/bin/bash
-# KRAKER - Generador de Banners Dinámicos por Usuario
-iptables-save -c > /etc/script_vps/consumos.txt 2>/dev/null
-chmod 666 /etc/script_vps/consumos.txt 2>/dev/null
+# KRAKER - Generador de Banners Dinámicos con Tracking real via ss + auth.log
 
+mkdir -p /etc/script_vps/{banners,consumo_last,consumo_total,limites}
+
+# PASO 1: Mapear PID de Dropbear → Usuario usando auth.log
+declare -A PID_USER
+for logfile in /var/log/auth.log /var/log/syslog; do
+    [ -f "$logfile" ] || continue
+    while IFS= read -r line; do
+        pid=$(echo "$line" | grep -oP 'dropbear\[\K[0-9]+')
+        user=$(echo "$line" | grep -oP "(?:Password|Pubkey) auth succeeded for '?\K[a-zA-Z0-9_.-]+")
+        [ -n "$pid" ] && [ -n "$user" ] && PID_USER[$pid]="$user"
+    done < <(grep -E "dropbear.*auth succeeded" "$logfile" 2>/dev/null | tail -500)
+done
+
+# PASO 2: Obtener bytes reales por PID de Dropbear en puerto 80 usando ss
+declare -A PID_BYTES
+current_pid=""
+while IFS= read -r line; do
+    if echo "$line" | grep -qP '"dropbear",pid=\d+'; then
+        current_pid=$(echo "$line" | grep -oP '"dropbear",pid=\K[0-9]+')
+    elif [ -n "$current_pid" ] && echo "$line" | grep -q 'bytes_sent:'; then
+        sent=$(echo "$line" | grep -oP 'bytes_sent:\K[0-9]+' || echo 0)
+        recv=$(echo "$line" | grep -oP 'bytes_received:\K[0-9]+' || echo 0)
+        [ -z "$sent" ] && sent=0
+        [ -z "$recv" ] && recv=0
+        PID_BYTES[$current_pid]=$(( sent + recv ))
+        current_pid=""
+    fi
+done < <(ss -tipn 2>/dev/null)
+
+# PASO 3: Sumar bytes por usuario y acumular (para no perder datos al desconectarse)
+declare -A USER_CURRENT
+for pid in "${!PID_BYTES[@]}"; do
+    user="${PID_USER[$pid]}"
+    [ -z "$user" ] && continue
+    USER_CURRENT[$user]=$(( ${USER_CURRENT[$user]:-0} + ${PID_BYTES[$pid]} ))
+done
+
+for user in "${!USER_CURRENT[@]}"; do
+    current="${USER_CURRENT[$user]}"
+    last=$(cat "/etc/script_vps/consumo_last/$user" 2>/dev/null || echo 0)
+    total=$(cat "/etc/script_vps/consumo_total/$user" 2>/dev/null || echo 0)
+    [ -z "$last" ] && last=0
+    [ -z "$total" ] && total=0
+    if [ "$current" -gt "$last" ]; then
+        delta=$(( current - last ))
+        total=$(( total + delta ))
+        echo "$total" > "/etc/script_vps/consumo_total/$user"
+    fi
+    echo "$current" > "/etc/script_vps/consumo_last/$user"
+done
+
+# PASO 4: Generar banner HTML premium para cada usuario
 for limite_file in /etc/script_vps/limites/*; do
     [ -e "$limite_file" ] || continue
     username=$(basename "$limite_file")
@@ -52,7 +102,7 @@ for limite_file in /etc/script_vps/limites/*; do
     # Calcular días restantes
     EXP_DATE=$(chage -l "$username" 2>/dev/null | grep "Account expires" | cut -d: -f2 | xargs)
     if [ "$EXP_DATE" = "never" ] || [ -z "$EXP_DATE" ]; then
-        EXP_TXT="Ilimitado"; DIAS_RESTANTES="∞"
+        EXP_TXT="Ilimitado"; DIAS_RESTANTES="&infin;"
     else
         EXP_SEC=$(date -d "$EXP_DATE" +%s 2>/dev/null); NOW_SEC=$(date +%s)
         if [ -n "$EXP_SEC" ]; then
@@ -62,19 +112,11 @@ for limite_file in /etc/script_vps/limites/*; do
         else EXP_TXT="?"; DIAS_RESTANTES="-"; fi
     fi
 
-    # Calcular consumo desde iptables
-    UID_NUM=$(id -u "$username" 2>/dev/null)
-    [ -z "$UID_NUM" ] && [ -f "/etc/script_vps/uids/$username" ] && \
-        UID_NUM=$(cat "/etc/script_vps/uids/$username")
-    BYTES=0
-    if [ -n "$UID_NUM" ] && [ "$UID_NUM" != "0" ]; then
-        BYTES=$(grep -E "uid-owner $UID_NUM( |$)" /etc/script_vps/consumos.txt 2>/dev/null | \
-                sed 's/\[\([0-9]*\):\([0-9]*\)\].*/\2/' | \
-                awk 'BEGIN{s=0} /^[0-9]/{s+=$1} END{print s}')
-    fi
+    # Leer consumo acumulado
+    BYTES=$(cat "/etc/script_vps/consumo_total/$username" 2>/dev/null || echo 0)
     [ -z "$BYTES" ] && BYTES=0
 
-    # Formatear consumo
+    # Formatear
     if [ "$BYTES" -lt 1024 ]; then
         CONSUMO="${BYTES} B"
     elif [ "$BYTES" -lt 1048576 ]; then
@@ -88,7 +130,6 @@ for limite_file in /etc/script_vps/limites/*; do
     LIMITE="1"
     [ -f "/etc/script_vps/limites/$username" ] && LIMITE=$(cat "/etc/script_vps/limites/$username")
 
-    # Escribir banner HTML premium
     cat << BANN > "/etc/script_vps/banners/$username"
 <br><br>
 <font color='#00FFFF'>╔════════════════════════════════════════════════╗</font><br>
